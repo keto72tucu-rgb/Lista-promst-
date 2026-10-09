@@ -1,33 +1,42 @@
-name: Build JA Prompts APK
-
+name: Build Keto Tucuman APK
 on:
-  workflow_dispatch:
   push:
-    branches: [ "main" ]
-
+    branches: [ "keto-tucuman-apk" ]
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - name: Descargar proyecto
+      - name: Descargar codigo
         uses: actions/checkout@v4
-
       - name: Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
       - name: Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-
+      - name: Convertir logo real en icono Android
+        run: |
+          python3 - <<'PY'
+          import re,base64,pathlib
+          html=pathlib.Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          match=re.search(r'<link rel="icon"[^>]*href="data:image/png;base64,([^"]+)"',html)
+          if not match: raise RuntimeError('Logo no encontrado')
+          target=pathlib.Path('app/src/main/res/drawable-nodpi/ic_launcher.png')
+          target.parent.mkdir(parents=True,exist_ok=True)
+          target.write_bytes(base64.b64decode(match.group(1)))
+          print('Icono OK',target.stat().st_size)
+          PY
       - name: Compilar APK
-        run: gradle :app:assembleDebug
-
-      - name: Guardar APK
+        run: gradle :app:assembleDebug --stacktrace
+      - name: Descargar APK
         uses: actions/upload-artifact@v4
         with:
-          name: JA-Prompts-APK
+          name: Keto-Tucuman-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
